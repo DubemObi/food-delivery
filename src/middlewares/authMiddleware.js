@@ -25,7 +25,6 @@ exports.auth = (request, response, next) => {
     });
   } else {
     response.status(401).json({ message: "Sign In" });
-    response.redirect("./login");
   }
 };
 

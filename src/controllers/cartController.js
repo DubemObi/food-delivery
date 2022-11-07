@@ -11,47 +11,46 @@ const sumAllCart = (array) => {
   }
   return total;
 };
-
+const deliveryFee = 500;
 exports.addToCart = async (request, response) => {
   try {
-    const reqBody = request.body;
+    const { foodMenu, quantity } = request.body;
     const userID = request.user;
-    const newCart = new Cart(reqBody);
-    if (userID.id !== reqBody.user) {
-      response.status(401).json({ message: "Unauthorized user" });
-    } else {
-      const findFoodMenu = await Menu.findById(reqBody.foodMenu);
-      if (!findFoodMenu) {
-        response.status(404).json({ message: "Food not available in store" });
-      } else {
-        newCart.subTotal = findFoodMenu.price * newCart.quantity;
-      }
-
-      await newCart.save();
-
-      const userOrder = await Order.findOne({ user: userID });
-      if (!userOrder) {
-        await Order.create({
-          user: userID,
-          cartId: [newCart.id],
-          total: newCart.subTotal,
-        });
-      } else {
-        const orderCart = [...userOrder.cartId, newCart.id];
-        const newTotal = userOrder.total + newCart.subTotal;
-
-        const update = {
-          cartId: orderCart,
-          total: newTotal,
-        };
-        await Order.findOneAndUpdate({ user: userID }, update, { new: true });
-      }
-      response.status(201).json({
-        status: true,
-        mesaage: "Added to cart successfully",
-        data: newCart,
-      });
+    const findFoodMenu = await Menu.findById(foodMenu);
+    if (!findFoodMenu) {
+      response.status(404).json({ message: "Food not available in store" });
     }
+    const newSubTotal = findFoodMenu.price * quantity;
+
+    const newCart = await Cart.create({
+      user: userID,
+      foodMenu,
+      quantity,
+      subTotal: newSubTotal,
+    });
+
+    const userOrder = await Order.findOne({ user: userID.id });
+    if (!userOrder) {
+      await Order.create({
+        user: userID,
+        cartId: [newCart.id],
+        total: newCart.subTotal + deliveryFee,
+      });
+    } else {
+      const orderCart = [...userOrder.cartId, newCart.id];
+      const newTotal = userOrder.total + newCart.subTotal;
+
+      const update = {
+        cartId: orderCart,
+        total: newTotal + deliveryFee,
+      };
+      await Order.findOneAndUpdate({ user: userID }, update, { new: true });
+    }
+    response.status(201).json({
+      status: true,
+      mesaage: "Added to cart successfully",
+      data: newCart,
+    });
   } catch (err) {
     console.log(err);
     response.status(400).json({ mesaage: "Incomplete requirements" });
@@ -60,37 +59,47 @@ exports.addToCart = async (request, response) => {
 // To increase the quantity of the foodMenu on the cart
 exports.updateCart = async (request, response) => {
   try {
-    const reqBody = request.body;
+    const { quantity } = request.body;
     const cartID = request.params.id;
     const findCart = await Cart.findById(cartID);
     const user = request.user;
-    if (findCart && findCart.user.toString() === user._id.toString()) {
-      findCart.quantity += reqBody.quantity;
+    let newSubTotal;
+    if (
+      findCart &&
+      findCart.status === false &&
+      findCart.user.toString() === user._id.toString()
+    ) {
       const findFoodMenu = await Menu.findById(findCart.foodMenu);
       if (findFoodMenu) {
-        newSubTotal = findFoodMenu.price * findCart.quantity;
+        newSubTotal = findFoodMenu.price * quantity;
+
+        const cartUpdate = {
+          subTotal: newSubTotal,
+          quantity: quantity,
+        };
+
+        const updatedCart = await Cart.findByIdAndUpdate(cartID, cartUpdate, {
+          new: true,
+        });
+        const userOrder = await Order.findOne({ user: user.id });
+        if (!userOrder) {
+          response.status(401).json({ message: "Incorrect userID " });
+        }
+        userOrder.total -= findCart.subTotal;
+        const newTotal = userOrder.total + newSubTotal;
+
+        const update = {
+          total: newTotal,
+        };
+        await Order.findOneAndUpdate({ user: user }, update, { new: true });
+        return response.status(200).json({
+          status: true,
+          message: "Cart updated successfully",
+          data: updatedCart,
+        });
       }
-      await Cart.findByIdAndUpdate(cartID, { subTotal: newSubTotal });
-
-      const userOrder = await Order.findOne({ user: reqBody.user });
-      if (!userOrder) {
-        response.status(401).json({ message: "Incorrect userID " });
-      }
-      userOrder.total -= findCart.subTotal;
-      const newTotal = userOrder.total + newSubTotal;
-
-      const update = {
-        total: newTotal,
-      };
-      await Order.findOneAndUpdate({ user: user }, update, { new: true });
-
-      response.status(200).json({
-        status: true,
-        message: "Cart updated successfully",
-        data: findCart,
-      });
     } else {
-      response.status(401).json({ message: "Unauthorized user" });
+      response.status(401).json({ message: "No cart found" });
     }
   } catch (err) {
     response.status(400).json({ mesaage: "Incomplete requirements" });
@@ -99,41 +108,35 @@ exports.updateCart = async (request, response) => {
 
 exports.getCart = async (request, response) => {
   try {
-    // const userID = request.params.id;
     const userID = request.user;
-    const reqBody = request.body;
-    if (userID.id !== reqBody.user) {
-      response.status(401).json({ message: "Unauthorized user" });
-    } else {
-      const findAllCart = await Cart.find({ user: reqBody.user });
+    const findAllCart = await Cart.find({ user: userID, status: false });
 
-      if (findAllCart) {
-        response.status(200).json({
-          status: true,
-          message: "All carts found",
-          quantity: findAllCart.length,
-          total: await sumAllCart(findAllCart),
-          data: findAllCart,
-        });
-      } else {
-        response.status(200).json({ status: failed, message: "No cart found" });
-      }
+    if (findAllCart) {
+      response.status(200).json({
+        status: true,
+        message: "All carts found",
+        quantity: findAllCart.length,
+        total: await sumAllCart(findAllCart),
+        data: findAllCart,
+      });
+    } else {
+      response.status(200).json({ status: failed, message: "No cart found" });
     }
   } catch (err) {
-    response.status(400).json({ mesaage: "Incomplete requirements" });
+    response.status(400).json({ mesaage: "Invalid details" });
   }
 };
 
 exports.deleteCart = async (request, response) => {
   try {
     const cartID = request.params.id;
-    const reqBody = request.body;
+    const user = request.user;
     const findCart = await Cart.findById(cartID);
     const cartUser = await User.findById(findCart.user);
-    if (findCart && cartUser.id === reqBody.user) {
-      const userOrder = await Order.findOne({ user: reqBody.user });
+    if (findCart && findCart.status === false && cartUser.id === user.id) {
+      const userOrder = await Order.findOne({ user: user.id });
 
-      let amount = userOrder.total - findCart.subTotal;
+      let amount = userOrder.total - findCart.subTotal - deliveryFee;
       const cart_id = userOrder.cartId.filter(
         (id) => id.toString() !== findCart._id.toString()
       );
@@ -145,10 +148,10 @@ exports.deleteCart = async (request, response) => {
       const cartDelete = await Cart.findByIdAndDelete(cartID);
       if (cart_id.length === 0) {
         //if greater than 0
-        await Order.findOneAndDelete({ user: reqBody.user });
+        await Order.findOneAndDelete({ user: user.id });
       }
       await Order.findOneAndUpdate(
-        { user: reqBody.user },
+        { user: user.id },
         { $set: update },
         { new: true }
       );
@@ -161,7 +164,6 @@ exports.deleteCart = async (request, response) => {
       response.status(401).json({ message: "Unauthorized user" });
     }
   } catch (err) {
-    console.log(err);
     response.status(400).json({ message: "Incomplete requirements" });
   }
 };

@@ -3,15 +3,7 @@ const Cart = require("../models/cartModel");
 const Flutterwave = require("flutterwave-node-v3");
 const nodemailer = require("nodemailer");
 const newEmail = require("../utils/email");
-
-// async..await is not allowed in global scope, must use a wrapper
-// async function main() {
-//   // Generate test SMTP service account from ethereal.email
-//   // Only needed if you don't have a real mail account for testing
-//   // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
-// }
-
-// main().catch(console.error);
+const orderHistory = require("../models/orderHistory");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -51,17 +43,32 @@ exports.checkOut = async (request, res) => {
           });
 
           if (callValidate.status === "success") {
-            let cartItems = await Cart.find({ user: user.id });
-            if (cartItems) {
-              cartItems.map(async (cartItem) => {
-                await Cart.findByIdAndDelete(cartItem._id);
-              });
-            }
+            // let cartItems = await Cart.find({ user: user.id });
+            // if (cartItems) {
+            //   cartItems.map(async (cartItem) => {
+            //     await Cart.findByIdAndDelete(cartItem._id);
+            //   });
+            // }
             await newEmail({
               email: "chidubemobinwanne@gmail.com",
               subject: "Order Completed from Food App",
               text: findOrder,
             });
+
+            const changeStatus = await Cart.updateMany(
+              { user: user.id },
+              { status: true }
+            );
+            // console.log(orderItems);
+
+            await orderHistory.create({
+              user: user,
+              items: findOrder.cartId,
+              total: findOrder.total,
+            });
+
+            await Order.findByIdAndDelete(orderID);
+
             res.status(200).json({
               status: "success",
               message: "Order completed successfully",
@@ -91,9 +98,9 @@ exports.checkOut = async (request, res) => {
           //     }
           //   });
           if (callValidate.status === "error") {
-            res.status(400).send("please try again");
+             res.status(400).send("please try again");
           } else {
-            res.status(400).send("payment failed");
+            return res.status(400).send("payment failed");
           }
         }
       } catch (error) {

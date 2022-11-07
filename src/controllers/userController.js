@@ -73,7 +73,6 @@ exports.getAllUsers = async (request, response) => {
 };
 
 exports.deleteUser = async (request, response) => {
-  // const { id } = request.query;
   const user = request.user;
   const findUser = await User.findByIdAndDelete(user.id);
   if (findUser) {

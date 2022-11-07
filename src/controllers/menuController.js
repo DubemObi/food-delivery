@@ -1,7 +1,31 @@
 const express = require("express");
+const multer = require("multer");
 const Menu = require("../models/menuModel");
 const User = require("../models/userModel");
 const { handleErrors } = require("../utils/menuErrors");
+
+const multerStorage = multer.memoryStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public");
+  },
+  filename: (req, file, cb) => {
+    const ext = file.mimetype.split("/")[1];
+    cb(null, `files/admin-${file.fieldname}-${Date.now()}.${ext}`);
+  },
+});
+
+const multerFilter = (req, file, cb) => {
+  if (file.mimetype.split("/")[1] === "img") {
+    cb(null, true);
+  } else {
+    cb(new Error("Not a PDF File!!"), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
 
 exports.createMenu = async (request, response) => {
   try {
