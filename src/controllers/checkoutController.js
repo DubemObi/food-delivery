@@ -4,6 +4,7 @@ const Flutterwave = require("flutterwave-node-v3");
 const nodemailer = require("nodemailer");
 const newEmail = require("../utils/email");
 const orderHistory = require("../models/orderHistory");
+const Review = require("../models/reviewModel");
 
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
@@ -43,14 +44,8 @@ exports.checkOut = async (request, res) => {
           });
 
           if (callValidate.status === "success") {
-            // let cartItems = await Cart.find({ user: user.id });
-            // if (cartItems) {
-            //   cartItems.map(async (cartItem) => {
-            //     await Cart.findByIdAndDelete(cartItem._id);
-            //   });
-            // }
             await newEmail({
-              email: "chidubemobinwanne@gmail.com",
+              email: req.body.email,
               subject: "Order Completed from Food App",
               text: findOrder,
             });
@@ -59,7 +54,6 @@ exports.checkOut = async (request, res) => {
               { user: user.id },
               { status: true }
             );
-            // console.log(orderItems);
 
             await orderHistory.create({
               user: user,
@@ -98,19 +92,18 @@ exports.checkOut = async (request, res) => {
           //     }
           //   });
           if (callValidate.status === "error") {
-             res.status(400).send("please try again");
+            return res.status(400).send("please try again");
           } else {
             return res.status(400).send("payment failed");
           }
         }
       } catch (error) {
-        console.log(error);
+        response.send("An error occured");
       }
     } else {
       response.status(401).json({ message: "Unauthorized user" });
     }
   } catch (err) {
-    console.log(err);
     response.status(400).json({ message: "Incomplete requirements" });
   }
 };

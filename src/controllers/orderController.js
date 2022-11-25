@@ -18,7 +18,6 @@ exports.getOrder = async (request, response) => {
       response.status(401).json({ message: "Unauthorized user" });
     }
   } catch (err) {
-    console.log(err);
     response.status(400).json({ message: "Incomplete requirements" });
   }
 };
@@ -54,7 +53,6 @@ exports.getOrderHistory = async (request, response) => {
       response.status(401).json({ message: "No order history" });
     }
   } catch (err) {
-    console.log(err);
     response.status(400).json({ message: "Incomplete requirements" });
   }
 };

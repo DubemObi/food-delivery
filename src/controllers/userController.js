@@ -64,7 +64,6 @@ exports.getAllUsers = async (request, response) => {
       AllUsers: findAllUsers,
     });
   } catch (err) {
-    console.log(err);
     return response.status(404).send({
       status: false,
       message: "No users found",

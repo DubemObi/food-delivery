@@ -8,6 +8,7 @@ exports.handleErrors = (err) => {
     category: "",
     price: "",
     image: "",
+    category: "",
   };
 
   //validate errors

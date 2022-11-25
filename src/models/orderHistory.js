@@ -16,6 +16,14 @@ const orderHistorySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    rating: {
+        type: Number,
+    },
+  
+    review: {
+        type: String,
+    },
+    
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

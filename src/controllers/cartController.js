@@ -52,10 +52,10 @@ exports.addToCart = async (request, response) => {
       data: newCart,
     });
   } catch (err) {
-    console.log(err);
     response.status(400).json({ mesaage: "Incomplete requirements" });
   }
 };
+
 // To increase the quantity of the foodMenu on the cart
 exports.updateCart = async (request, response) => {
   try {

@@ -18,6 +18,13 @@ const menuSchema = new mongoose.Schema({
     type: String,
     required: [true, "Add image URL"],
   },
+  cloudinary_id: {
+    type: String,
+  },
+  category: {
+    type: String,
+    required: [true, "Please enter category"],
+  },
 });
 
 const Menu = mongoose.model("Menu", menuSchema);

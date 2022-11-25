@@ -128,7 +128,7 @@ exports.resetPasswordRequest = async (req, res) => {
       "host"
     )}/api/v1/auths/reset-password/${token.token}`;
     await newEmail({
-      email: "chidubemobinwanne@gmail.com",
+      email: req.body.email,
       subject: "Password reset",
       text: link,
     });
@@ -139,7 +139,6 @@ exports.resetPasswordRequest = async (req, res) => {
     });
   } catch (error) {
     res.send("An error occured");
-    console.log(error);
   }
 };
 
@@ -165,7 +164,6 @@ exports.resetPassword = async (req, res) => {
     }
   } catch (error) {
     res.send("An error occured");
-    console.log(error);
   }
 };
 

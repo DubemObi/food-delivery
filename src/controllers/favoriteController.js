@@ -19,7 +19,6 @@ exports.addToFavorite = async (request, response) => {
       });
     }
   } catch (err) {
-    console.log(err);
     response.status(400).json({ mesaage: "Incomplete requirements" });
   }
 };
